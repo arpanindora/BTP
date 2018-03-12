@@ -36,7 +36,7 @@ def find_std(hist,bins):
 
 	return np.power(std_dev/total,0.5)
  
-def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1, show_hist = True, bins = 512):
+def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H=1, K = 1):
 	im = np.array(im, dtype=float) #Convert to float to prevent clipping values
  
 	#Gaussian blur to reduce noise
@@ -104,67 +104,15 @@ def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1,
 	flattened_grad = np.reshape(grad,(grad.shape[0])*(grad.shape[1]))
 
 	mean_grad = np.mean(flattened_grad)
+	std_dev = np.std(flattened_grad)
 
-	hist, bin_edges = np.histogram(flattened_grad,bins=bins)
-
-	# print hist,bin_edges
 
 	total = (grad.shape[0])*(grad.shape[1])
 
-	otsu_thresh = 0.0
-	sum_n = 0.0
-	max_between_variance = -1.0
+	highThreshold = mean_grad + K*mean_grad
+	lowThreshold = highThreshold/2
 
-
-	for i in range(hist.shape[0]):
-
-
-		sum_n =  sum_n + hist[i]
-		
-		PA = (sum_n/total)
-		PB = (total - sum_n)/total
-
-		mu_A = find_mean(hist[:i+1],bin_edges[:i+2])
-		mu_B = find_mean(hist[i+1:],bin_edges[i:])
-
-		# print PA,PB,mu_A,mu_B
-
-		between_variance = PA*np.power(mu_A - mean_grad, 2.0) + PB*np.power(mu_B - mean_grad,2.0)
-
-		# print between_variance
-
-
-		if max_between_variance < between_variance:
-			max_between_variance = between_variance
-			otsu_thresh = i
-
-
-	print otsu_thresh
-
-	mu_weak = find_mean(hist[:otsu_thresh+1],bin_edges[:otsu_thresh+2])
-	mu_strong = find_mean(hist[otsu_thresh+1:],bin_edges[otsu_thresh:])
-	
-	std_weak = find_std(hist[:otsu_thresh+1],bin_edges[:otsu_thresh+2])
-	std_strong = find_std(hist[otsu_thresh+1:],bin_edges[otsu_thresh:])
-	
-	print 'mu_weak:',mu_weak,'mu_strong:',mu_strong
-	print 'std_weak:',std_weak,'std_strong:',std_strong
-	#Double threshold
-
-	highThreshold = mu_weak + std_weak
-	lowThreshold = mu_weak
-
-	print highThreshold,lowThreshold
-
-	if show_hist == True:
-		plt.hist(flattened_grad,bins=bins)  # arguments are passed to np.histogram
-		plt.title("Histogram with %d bins" % (bins))
-
-		plt.axvline(mean_grad, color='b', linestyle='dashed', linewidth=2)
-		plt.axvline(highThreshold, color='r', linestyle='dashed', linewidth=2)
-		plt.axvline(lowThreshold, color='g', linestyle='dashed', linewidth=2)
-
-		plt.show()
+	# print highThreshold,lowThreshold
 
 	strongEdges = (gradSup > highThreshold)
  
@@ -205,8 +153,11 @@ def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1,
 	return finalEdges
  
 if __name__=="__main__":
-	path = 'MICC-F220/'
-	path_save = 'MICC-F220_save/'
+	path = 'data/'
+	path_save = 'old_canny/'
+
+	if not os.path.exists(path_save):
+		os.makedirs(path_save)
 
 	file_total = len(os.listdir(path))
 	i = 1
@@ -216,12 +167,13 @@ if __name__=="__main__":
 		input_im = path + filename
 		print filename
 		im = imread(input_im, mode="L") #Open image, convert to greyscale
-		finalEdges = CannyEdgeDetector(im,show_hist=False)
+		finalEdges = CannyEdgeDetector(im,K=1.2)
 		imsave(path_save + filename,finalEdges)
+		# imshow(finalEdges)
 		print i,'of',file_total,'done.'
 		i+=1
 
 	# input_im = sys.argv[1]
 	# im = imread(input_im, mode="L") #Open image, convert to greyscale
-	# finalEdges = CannyEdgeDetector(im,bins = 256)
+	# finalEdges = CannyEdgeDetector(im,K=1.2)
 	# imshow(finalEdges)

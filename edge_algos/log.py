@@ -1,76 +1,38 @@
-from PIL import Image
-import numpy
-from scipy import signal
-from scipy import misc
-import math
+import numpy as np
+from scipy.ndimage.filters import convolve, gaussian_laplace
+from scipy.misc import imread, imshow, imsave
+import sys
+import os
 
-im = Image.open('mona.jpg')
-new_image = Image.new('L',im.size)
-pix = im.load()
-# print( im.size)
+np.set_printoptions(threshold=np.nan)
 
-# for row in pix:
-# 	for pixel in row:
-# 		print( pixel)
-pixels = list(im.getdata())
+def LOG(im, blur = 1):
+	im = np.array(im, dtype=float)
+	im2 = gaussian_laplace(im,blur)
+	return im2
+ 
+if __name__=="__main__":
+	path = 'data/'
 
-width, height = im.size
+	path_save = 'LOG/'
 
-# for line in range(height):
-# 	for cell in range(width):
-# 		print(pixels[width*line + cell])
+	if not os.path.exists(path_save):
+		os.makedirs(path_save)
 
-grayscale_pixels = []
+	file_total = len(os.listdir(path))
+	i = 1
+	for filename in os.listdir(path):
+		if not filename.endswith('.jpg'):
+			continue
+		input_im = path + filename
+		print filename
+		im = imread(input_im, mode="L") #Open image, convert to greyscale
+		finalEdges = LOG(im)
+		imsave(path_save + filename,finalEdges)
+		print i,'of',file_total,'done.'
+		i+=1
 
-for i in range(width*height):
-	R = pixels[i][0]
-	G = pixels[i][1]
-	B = pixels[i][2]
-	GS = 0.2125*R + 0.7154*G + 0.0721*B
-	GS = int(GS)
-	grayscale_pixels.append(GS)
-
-
-new_image.putdata(grayscale_pixels)
-
-new_image.show()
-
-# new_image.save('new.jpg')
-pixel_values = numpy.array(grayscale_pixels).reshape((height, width))
-
-kernel = [
-			[0.0438 , 0.0982, 0.108, 0.0982,0.0438],
-			[0.0982, 0, -0.242, 0, 0.0982],
-			[0.108, -0.242, -0.7979, -0.242, 0.108],
-			[0.0982, 0, -0.242, 0, 0.0982],
-			[0.0438 , 0.0982, 0.108, 0.0982,0.0438]
-		]
-
-log_pixels = []
-
-def correlation(r,c):
-	s = 0
-	for i in range(5):
-		for j in range(5):
-			try:
-				s+= kernel[i][j]*pixel_values[r-2 + i][c-2+j]
-			except Exception, e:
-				pass
-	log_pixels.append(s)
-
-
-def apply_filter():
-	for r in range(height):
-		for c in range(width):
-			correlation(r,c)
-
-
-apply_filter()
-
-
-
-# new_pixels = numpy.array(pixel_values).reshape((height*width))
-
-new_image.putdata(log_pixels)
-new_image.show()
-# print(new_pixels)
+	# input_im = sys.argv[1]
+	# im = imread(input_im, mode="L") #Open image, convert to greyscale
+	# finalEdges = LOG(im)
+	# imshow(finalEdges)
