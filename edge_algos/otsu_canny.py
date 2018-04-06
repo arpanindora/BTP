@@ -5,6 +5,8 @@ import sys
 import matplotlib.pyplot as plt
 import os
 import glob
+import math
+from skimage.measure import compare_ssim as ssim
 
 np.set_printoptions(threshold=np.nan)
 
@@ -36,7 +38,7 @@ def find_std(hist,bins):
 
 	return np.power(std_dev/total,0.5)
  
-def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1, show_hist = False, bins = 512):
+def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1, show_hist = False, bins = 512, K = 1, L = 0):
 	im = np.array(im, dtype=float) #Convert to float to prevent clipping values
  
 	#Gaussian blur to reduce noise
@@ -52,7 +54,7 @@ def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1,
 
 	im3 = np.zeros((im.shape[0],im.shape[1]))
 
-	print W.shape
+	# print W.shape
 	for i in range(im.shape[0]):
 		for j in range(im.shape[1]):
 
@@ -151,8 +153,8 @@ def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1,
 	# print 'std_weak:',std_weak,'std_strong:',std_strong
 	#Double threshold
 
-	highThreshold = mu_weak + std_weak
-	lowThreshold = mu_weak
+	highThreshold = mu_weak + K*std_weak
+	lowThreshold = mu_weak + L*std_weak
 
 	# print highThreshold,lowThreshold
 
@@ -204,8 +206,54 @@ def CannyEdgeDetector(im, blur = 1, highThreshold = 91, lowThreshold = 31,H = 1,
  
 	return finalEdges
  
+def psnr(img1, img2):
+    mse = np.mean( (img1 - img2) ** 2 )
+    if mse == 0:
+        return 100
+    PIXEL_MAX = 255.0
+    return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+
+
+def ssim_value(y_true,y_pred):
+	return 100*ssim(y_true, y_pred, multichannel = False)
+
+def eval(argv,K,L):
+	K = str(K)
+	L = str(L)
+
+	gt_dir = 'test_gt/'
+	out_dir = argv
+
+	file_total = len(os.listdir(path))
+
+	i = 1
+	mean_psnr = 0
+	mean_ssim = 0
+	for filename in os.listdir(gt_dir):
+		if not filename.endswith('.jpg'):
+			continue
+		gt_im = gt_dir + filename
+		out_im = out_dir + filename
+		# print filename
+		gt_im = imread(gt_im, mode="L")
+		out_im = imread(out_im, mode="L")
+		mean_psnr += psnr(gt_im,out_im)/file_total
+		mean_ssim += ssim_value(gt_im,out_im)/file_total
+		# print i,'of',file_total,'done.'
+		i+=1
+	
+	print 'PSNR : ' +  str(mean_psnr), 'SSIM : ' +  str(mean_ssim), "K : " + K, "L : " + L
+
+	fp = open('b.txt','a')
+	# fp.write(argv[1] + ': ' + str(mean_psnr) + '\n')
+
+	s =  '=====================' + argv + '=====================' + '\n' + 'PSNR : ' + str(mean_psnr) + '\n' + 'SSIM : ' + str(mean_ssim) + '\n' + "K : " + K + '\n' + "L : " + L + '\n'
+	fp.write(s)
+	fp.close()
+	return mean_psnr,mean_ssim
+
 if __name__=="__main__":
-	path = 'data/'
+	path = 'test_data/'
 
 	path_save = 'otsu_canny/'
 
@@ -213,17 +261,61 @@ if __name__=="__main__":
 		os.makedirs(path_save)
 
 	file_total = len(os.listdir(path))
-	i = 1
+
+
+	min_psnr = 100
+	max_ssim = 0
+	
+	best_K_psnr = 0
+	best_L_psnr = 0
+
+	best_K_ssim = 0
+	best_L_ssim = 0
+
+	for i in range(0,3):
+		for j in range(i + 1,3):
+			count = 1
+			for filename in os.listdir(path):
+				if not filename.endswith('.jpg'):
+					continue
+				input_im = path + filename
+				print filename
+				im = imread(input_im, mode="L") #Open image, convert to greyscale
+				K = j/10.0
+				L = i/10.0
+				finalEdges = CannyEdgeDetector(im,show_hist=False,K = K , L = L)
+
+				imsave(path_save + filename, finalEdges)
+				print count,'of',file_total,'done.'
+				count+=1
+			psnr, ssim = eval(path_save,K,L)
+
+			if psnr < min_psnr:
+				best_K_psnr = K
+				best_L_ssim = L
+
+			if ssim > max_ssim:
+				best_K_ssim = K
+				best_L_ssim = L
+
+	fp = open('b.txt','a')
+	s = '********************************\n' + 'Minimum PSNR : ' + str(min_psnr) + " K : " + str(best_K_psnr) + " L : " + str(best_L_psnr) + '\n' + 'Maximum SSIM : ' + str(max_ssim)  + " K : " + str(best_K_ssim) + " L : " + str(best_L_ssim) + '\n'
+	fp.write(s)
+	fp.close()
+
+	count = 1
 	for filename in os.listdir(path):
 		if not filename.endswith('.jpg'):
 			continue
 		input_im = path + filename
 		print filename
 		im = imread(input_im, mode="L") #Open image, convert to greyscale
+
 		finalEdges = CannyEdgeDetector(im,show_hist=False)
 		imsave(path_save + filename,finalEdges)
-		print i,'of',file_total,'done.'
-		i+=1
+		print count,'of',file_total,'done.'
+		count+=1
+
 
 	# input_im = sys.argv[1]
 	# im = imread(input_im, mode="L") #Open image, convert to greyscale
