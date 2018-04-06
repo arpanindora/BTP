@@ -288,13 +288,13 @@ if __name__=="__main__":
 				imsave(path_save + filename, finalEdges)
 				print count,'of',file_total,'done.'
 				count+=1
-			psnr, ssim = eval(path_save,K,L)
+			temppsnr, tempssim = eval(path_save,K,L)
 
-			if psnr < min_psnr:
+			if temppsnr < min_psnr:
 				best_K_psnr = K
 				best_L_ssim = L
 
-			if ssim > max_ssim:
+			if tempssim > max_ssim:
 				best_K_ssim = K
 				best_L_ssim = L
 
