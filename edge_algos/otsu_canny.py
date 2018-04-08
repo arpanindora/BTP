@@ -244,7 +244,7 @@ def eval(argv,K,L):
 	
 	print 'PSNR : ' +  str(mean_psnr), 'SSIM : ' +  str(mean_ssim), "K : " + K, "L : " + L
 
-	fp = open('b.txt','a')
+	fp = open('c.txt','a')
 	# fp.write(argv[1] + ': ' + str(mean_psnr) + '\n')
 
 	s =  '=====================' + argv + '=====================' + '\n' + 'PSNR : ' + str(mean_psnr) + '\n' + 'SSIM : ' + str(mean_ssim) + '\n' + "K : " + K + '\n' + "L : " + L + '\n'
@@ -272,8 +272,8 @@ if __name__=="__main__":
 	best_K_ssim = 0
 	best_L_ssim = 0
 
-	for i in range(0,3):
-		for j in range(i + 1,3):
+	for i in range(0,20):
+		for j in range(i + 1,20):
 			count = 1
 			for filename in os.listdir(path):
 				if not filename.endswith('.jpg'):
@@ -293,12 +293,14 @@ if __name__=="__main__":
 			if temppsnr < min_psnr:
 				best_K_psnr = K
 				best_L_ssim = L
+				min_psnr = temppsnr
 
 			if tempssim > max_ssim:
 				best_K_ssim = K
 				best_L_ssim = L
+				max_ssim = tempssim
 
-	fp = open('b.txt','a')
+	fp = open('d.txt','a')
 	s = '********************************\n' + 'Minimum PSNR : ' + str(min_psnr) + " K : " + str(best_K_psnr) + " L : " + str(best_L_psnr) + '\n' + 'Maximum SSIM : ' + str(max_ssim)  + " K : " + str(best_K_ssim) + " L : " + str(best_L_ssim) + '\n'
 	fp.write(s)
 	fp.close()
