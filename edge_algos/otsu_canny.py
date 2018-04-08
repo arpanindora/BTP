@@ -244,7 +244,7 @@ def eval(argv,K,L):
 	
 	print 'PSNR : ' +  str(mean_psnr), 'SSIM : ' +  str(mean_ssim), "K : " + K, "L : " + L
 
-	fp = open('c.txt','a')
+	fp = open('d.txt','a')
 	# fp.write(argv[1] + ': ' + str(mean_psnr) + '\n')
 
 	s =  '=====================' + argv + '=====================' + '\n' + 'PSNR : ' + str(mean_psnr) + '\n' + 'SSIM : ' + str(mean_ssim) + '\n' + "K : " + K + '\n' + "L : " + L + '\n'
